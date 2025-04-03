@@ -3,6 +3,7 @@
 
 #include "endpoint.h"
 
+void bind_to(struct Endpoint*);
 void listen_to(struct Endpoint*);
 struct Endpoint* accept_connexion(struct Endpoint*);
 

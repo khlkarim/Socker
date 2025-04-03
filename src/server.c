@@ -1,7 +1,7 @@
 #include "server.h"
 
-void listen_to(struct Endpoint* e){
-	if(!valid_endpoint(e)) return;
+void bind_to(struct Endpoint* e){
+	// if(!valid_endpoint(e)) return;
 
 	if (bind(e->sockfd, (struct sockaddr*)e->address, sizeof(*(e->address))) == -1) {
 		perror("Bind failed");
@@ -10,16 +10,21 @@ void listen_to(struct Endpoint* e){
 		return;
 	}
 	logger(INFO, "Bound successfully");
+}
 
-	if (listen(e->sockfd, BACKLOG) == -1) {
+void listen_to(struct Endpoint* e){
+	bind_to(e);
+
+	if ((get_socket_type(e) == TCP) && (listen(e->sockfd, BACKLOG) == -1)) {
 		handle_error(e, "Listen failed");
 		return;
 	}
-	printf("Server listening on port %d\n", TCP_PORT);
+	printf("Server listening on port %d\n", PORT);
 }
 
+// in case of TCP
 struct Endpoint* accept_connexion(struct Endpoint* e){
-	if(!valid_endpoint(e)) return NULL;
+	// if(!valid_endpoint(e)) return NULL;
 
 	struct Endpoint* client = (struct Endpoint*) malloc(sizeof(struct Endpoint));
 

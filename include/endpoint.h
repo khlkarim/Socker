@@ -10,9 +10,11 @@ struct Endpoint{
 };
 
 struct Endpoint* create_endpoint();
+struct Endpoint* create_udp_client(struct Endpoint*);
 
 int valid_endpoint(struct Endpoint*);
 void handle_error(struct Endpoint*, const char*);
+Protocol get_socket_type(struct Endpoint*);
 void free_endpoint(struct Endpoint*);
 
 void send_to(struct Endpoint*, const char*);

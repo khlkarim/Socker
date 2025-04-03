@@ -11,7 +11,12 @@
 
 #include "log.h"
 
-int create_socket();
+typedef enum{
+    TCP=1,
+    UDP=2
+} Protocol;
+
+int create_socket(Protocol);
 struct sockaddr_in* setup_address(const char*, int);
 
 #endif

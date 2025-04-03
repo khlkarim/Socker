@@ -1,7 +1,7 @@
 #include "utils.h"
 
-int create_socket() {
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+int create_socket(Protocol protocol) {
+    int sockfd = socket(AF_INET, protocol, 0);
     if (sockfd < 0) {
         logger(ERROR, "Failed to create socket");
     }

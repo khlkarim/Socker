@@ -4,7 +4,7 @@
 
 int main(int argc, char** argv){
     // create endpoint
-    struct Endpoint* e = create_endpoint();
+    struct Endpoint* e = create_endpoint(TCP);
 
     // start listen
     listen_to(e);

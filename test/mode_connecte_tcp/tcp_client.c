@@ -5,7 +5,7 @@
 
 int main(int argc, char** argv){
     // create an endpoint
-    struct Endpoint* e = create_endpoint();
+    struct Endpoint* e = create_endpoint(TCP);
 
     // connect to it
     connect_to(e);

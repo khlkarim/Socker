@@ -1,9 +1,17 @@
-A static library abstracting the Berkley socket API to be used in HTTP/TCP servers and clients and 
+# Networking Library
 
-a client should include "client.h"
-a server should include "server.h"
+This is a static library that abstracts the Berkeley Socket API, designed for use in HTTP/TCP servers and clients.
 
-add functionality for building requests and responces
+## Usage
 
-Add request and responce struct
-request and responce constructors
+- **Client**: Include `client.h` in your project.
+- **Server**: Include `server.h` in your project.
+
+## TODO
+
+- Functionality for building HTTP requests and responses.
+- `Request` and `Response` structures.
+- Constructors for `Request` and `Response` structs.
+- Generalise beyond HTTP
+- Stats (Packets recieved and lost)
+- Make the endpoint hold more info (like the type/protocol)
