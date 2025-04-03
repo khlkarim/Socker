@@ -1,7 +1,7 @@
 #include "endpoint.h"
 
 struct Endpoint* create_endpoint(Protocol protocol, char* hostname, char* ip_address, int port) {
-    if((protocol != TCP && protocol != UDP) || (hostname == NULL && ip_address == NULL) || port <= 1024){
+    if((protocol != TCP && protocol != UDP) || (hostname == NULL && ip_address == NULL)){
         throw_error(NULL, "Invalid arguments to create_endpoint(...)");
     }
 
@@ -10,12 +10,12 @@ struct Endpoint* create_endpoint(Protocol protocol, char* hostname, char* ip_add
     e->sockfd = create_socket(protocol);
     e->protocol = protocol;
     e->hostname = hostname;
+    e->ip_address = ip_address;
     e->port = port;
 
     if(e->ip_address == NULL){
         e->ip_address = dns_lookup(hostname);
     }
-    e->ip_address = ip_address;
     e->address = setup_address(e->ip_address, e->port);
 
     return e;
