@@ -1,4 +1,4 @@
-// Station 1
+// Station 2
 
 #include "server.h"
 #include <time.h>

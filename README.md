@@ -15,3 +15,4 @@ This is a static library that abstracts the Berkeley Socket API, designed for us
 [*] Generalise beyond HTTP
 - Stats (Packets recieved and lost)
 [*] Make the endpoint hold more info (like the type/protocol)
+- Make three functions that realize the services and then run each one on a thread
