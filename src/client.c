@@ -1,11 +1,11 @@
 #include "client.h"
 
-// in case of TCP
-void connect_to(struct Endpoint* e) {
-    // if(!valid_endpoint(e)) return;
+// Used in TCP communication
+void connect_to(struct Endpoint* server) {
+    validate_endpoint(server);
 
-    if (connect(e->sockfd, (struct sockaddr *)(e->address), sizeof(struct sockaddr_in)) < 0) {
-        handle_error(e, "Failed to connect to the server");
+    if (connect(server->sockfd, (struct sockaddr *)(server->address), sizeof(struct sockaddr_in)) < 0) {
+        throw_error(server, "Failed to connect to the server");
     }
     logger(INFO, "Connected to the server successfully");
 }

@@ -5,7 +5,7 @@
 
 int main(int argc, char** argv){
     // create an endpoint
-    struct Endpoint* e = create_endpoint(UDP);
+    struct Endpoint* e = create_endpoint(UDP, "localhost", "127.0.0.1", 8080);
 
     // communicate with it
     for(int i = 0;i<N; i++){

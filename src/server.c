@@ -1,41 +1,37 @@
 #include "server.h"
 
 void bind_to(struct Endpoint* e){
-	// if(!valid_endpoint(e)) return;
+	validate_endpoint(e);
 
 	if (bind(e->sockfd, (struct sockaddr*)e->address, sizeof(*(e->address))) == -1) {
-		perror("Bind failed");
-		printf("sockfd : %d\n port : %d\n", e->sockfd, ntohs(e->address->sin_port));
-		handle_error(e, "Bind failed");
-		return;
+		throw_error(e, "Bind failed");
 	}
+
 	logger(INFO, "Bound successfully");
 }
 
 void listen_to(struct Endpoint* e){
 	bind_to(e);
 
-	if ((get_socket_type(e) == TCP) && (listen(e->sockfd, BACKLOG) == -1)) {
-		handle_error(e, "Listen failed");
-		return;
+	if ((e->protocol == TCP) && (listen(e->sockfd, BACKLOG) == -1)) {
+		throw_error(e, "Listen failed");
 	}
-	printf("Server listening on port %d\n", PORT);
+
+	logger(INFO, "Server listening ...");
 }
 
-// in case of TCP
+// Used in TCP communication
 struct Endpoint* accept_connexion(struct Endpoint* e){
-	// if(!valid_endpoint(e)) return NULL;
+	validate_endpoint(e);
 
 	struct Endpoint* client = (struct Endpoint*) malloc(sizeof(struct Endpoint));
-
 	int address_size = sizeof(struct sockaddr);
 
 	client->sockfd = accept(e->sockfd, (struct sockaddr *)e->address, &address_size);
-	client->address = NULL;
+	client->protocol = e->protocol;
 
 	if(client->sockfd < 0){
-		free_endpoint(client);
-		handle_error(e, "Failed to accept connexion");
+		throw_error(e, "Failed to accept connexion");
 	}
 
 	return client;

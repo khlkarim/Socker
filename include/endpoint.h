@@ -6,15 +6,19 @@
 
 struct Endpoint{
     int sockfd;
-    struct sockaddr_in *address;  
+    Protocol protocol;
+    char* hostname;
+    char* ip_address;
+    int port;
+    struct sockaddr_in* address;  
 };
 
-struct Endpoint* create_endpoint();
+struct Endpoint* create_endpoint(Protocol, char*, char*, int);
 struct Endpoint* create_udp_client(struct Endpoint*);
 
-int valid_endpoint(struct Endpoint*);
-void handle_error(struct Endpoint*, const char*);
-Protocol get_socket_type(struct Endpoint*);
+void validate_endpoint(struct Endpoint*);
+void throw_error(struct Endpoint*, const char*);
+void log_endpoint(struct Endpoint*);
 void free_endpoint(struct Endpoint*);
 
 void send_to(struct Endpoint*, const char*);

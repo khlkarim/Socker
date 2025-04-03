@@ -2,14 +2,15 @@
 
 int create_socket(Protocol protocol) {
     int sockfd = socket(AF_INET, protocol, 0);
+    
     if (sockfd < 0) {
         logger(ERROR, "Failed to create socket");
     }
     logger(INFO, "Socket created successfully");
+    
     return sockfd;
 }
 
-// make this support dns lookups
 struct sockaddr_in* setup_address(const char* ip_address, int port) {
     struct sockaddr_in* address = (struct sockaddr_in*) malloc(sizeof(struct sockaddr_in));
 
