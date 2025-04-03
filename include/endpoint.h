@@ -13,11 +13,10 @@ struct Endpoint{
     struct sockaddr_in* address;  
 };
 
-struct Endpoint* create_endpoint(Protocol, char*, char*, int);
-struct Endpoint* create_udp_client(struct Endpoint*);
+struct Endpoint* create_endpoint(Protocol protocol, char* hostname, char* ip_address, int port);
+struct Endpoint* create_udp_client(struct Endpoint* server);
 
-void validate_endpoint(struct Endpoint*);
-void throw_error(struct Endpoint*, const char*);
+void throw_error(struct Endpoint*, const char* msg);
 void log_endpoint(struct Endpoint*);
 void free_endpoint(struct Endpoint*);
 

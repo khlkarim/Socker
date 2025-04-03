@@ -1,7 +1,9 @@
 #include "server.h"
 
 void bind_to(struct Endpoint* e){
-	validate_endpoint(e);
+	if(e == NULL || e->sockfd < 0 || e->address == NULL){
+        throw_error(e, "Invalid argument passed to bind_to(...)");
+	}
 
 	if (bind(e->sockfd, (struct sockaddr*)e->address, sizeof(*(e->address))) == -1) {
 		throw_error(e, "Bind failed");
@@ -22,7 +24,9 @@ void listen_to(struct Endpoint* e){
 
 // Used in TCP communication
 struct Endpoint* accept_connexion(struct Endpoint* e){
-	validate_endpoint(e);
+	if(e == NULL || e->sockfd < 0 || e->protocol != TCP || e->address == NULL){
+        throw_error(e, "Invalid argument passed to accept_connexion(...)");
+	}
 
 	struct Endpoint* client = (struct Endpoint*) malloc(sizeof(struct Endpoint));
 	int address_size = sizeof(struct sockaddr);
@@ -33,6 +37,7 @@ struct Endpoint* accept_connexion(struct Endpoint* e){
 	if(client->sockfd < 0){
 		throw_error(e, "Failed to accept connexion");
 	}
+	logger(INFO, "Connection accepted successfully");
 
 	return client;
 }

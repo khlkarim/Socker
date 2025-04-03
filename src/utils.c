@@ -11,7 +11,7 @@ int create_socket(Protocol protocol) {
     return sockfd;
 }
 
-struct sockaddr_in* setup_address(const char* ip_address, int port) {
+struct sockaddr_in* setup_address(const char* ip_address, const int port) {
     struct sockaddr_in* address = (struct sockaddr_in*) malloc(sizeof(struct sockaddr_in));
 
     memset(address, 0, sizeof(struct sockaddr_in));
@@ -24,4 +24,25 @@ struct sockaddr_in* setup_address(const char* ip_address, int port) {
     logger(INFO, "Address setup successfully");
 
     return address;
+}
+
+char* dns_lookup(const char* hostname) {
+    struct addrinfo hints, *res;
+    char* ip = (char*) malloc(INET_ADDRSTRLEN * sizeof(char));
+
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET;
+
+    int status = getaddrinfo(hostname, NULL, &hints, &res);
+    if (status != 0) {
+        free(ip);
+        logger(ERROR, "DNS lookup failed");
+        exit(EXIT_FAILURE);
+    }
+
+    struct sockaddr_in* ipv4 = (struct sockaddr_in*)res->ai_addr;
+    inet_ntop(AF_INET, &(ipv4->sin_addr), ip, INET_ADDRSTRLEN);
+
+    freeaddrinfo(res);
+    return ip;
 }

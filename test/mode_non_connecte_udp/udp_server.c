@@ -11,10 +11,11 @@ int main(int argc, char** argv){
     listen_to(e);
 
     char* request;
-    
     while(request = receive_from(client)){
         printf("Client said: %s\n", request);
     }
 
+    free_endpoint(e);
+    free_endpoint(client);
     return 0;
 }

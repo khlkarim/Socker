@@ -10,19 +10,22 @@ struct Endpoint* create_endpoint(Protocol protocol, char* hostname, char* ip_add
     e->sockfd = create_socket(protocol);
     e->protocol = protocol;
     e->hostname = hostname;
-    e->ip_address = ip_address;
     e->port = port;
 
-    if(e->ip_address != NULL){
-        e->address = setup_address(e->ip_address, e->port);
-    }else{
-        // TODO: DNS lookup
+    if(e->ip_address == NULL){
+        e->ip_address = dns_lookup(hostname);
     }
+    e->ip_address = ip_address;
+    e->address = setup_address(e->ip_address, e->port);
 
     return e;
 }
 
 struct Endpoint* create_udp_client(struct Endpoint* server){
+    if(server == NULL || server->sockfd < 0){
+        throw_error(server, "Invalid argument passed to create_udp_client(...)");
+    }
+
     struct Endpoint* client = (struct Endpoint*) malloc(sizeof(struct Endpoint));
 
     client->sockfd = server->sockfd;
@@ -32,14 +35,10 @@ struct Endpoint* create_udp_client(struct Endpoint* server){
     return client;
 }
 
-void validate_endpoint(struct Endpoint* e){
-    if(e == NULL || e->address == NULL){
-        throw_error(e, "Invalid struct Endpoint passed as argument");
-    }
-}
-
 void send_to(struct Endpoint* e, const char* request) {
-    validate_endpoint(e);
+    if(e == NULL || e->sockfd < 0 || (e->protocol == UDP && e->address == NULL)){
+        throw_error(e, "Invalid argument passed to send_to(...)");
+    }
 
     // Send via TCP
     if (e->protocol == TCP 
@@ -52,7 +51,7 @@ void send_to(struct Endpoint* e, const char* request) {
 
     // Send via UDP
     if (e->protocol == UDP 
-        && sendto(e->sockfd, request, sizeof(request), 0, (struct sockaddr*)e->address, sizeof(*(e->address))) < 0){
+        && sendto(e->sockfd, request, strlen(request), 0, (struct sockaddr*)e->address, sizeof(*(e->address))) < 0){
         throw_error(e, "Send failed");
     }else if(e->protocol == UDP){
         logger(INFO, "Request sent successfully");
@@ -63,14 +62,16 @@ void send_to(struct Endpoint* e, const char* request) {
 }
 
 char* receive_from(struct Endpoint* e) {
-    validate_endpoint(e);
+    if(e == NULL || e->sockfd < 0 || (e->protocol == UDP && e->address == NULL)){
+        throw_error(e, "Invalid argument passed to receive_from(...)");
+    }
 
     char* buffer = (char*) malloc(MAX_BUFFER_SIZE * sizeof(char));
     int bytes_received, address_size = sizeof(*(e->address));
 
     // Receive via TCP
     if (e->protocol == TCP 
-        && (bytes_received = recv(e->sockfd, buffer, MAX_BUFFER_SIZE - 1, 0)) > 0) {
+        && (bytes_received = recv(e->sockfd, buffer, MAX_BUFFER_SIZE - 1, 0)) >= 0) {
         buffer[bytes_received] = '\0';
         return buffer;
     }else if(e->protocol == TCP){
@@ -79,7 +80,7 @@ char* receive_from(struct Endpoint* e) {
 
     // Receive via UDP
     if (e->protocol == UDP 
-        && (bytes_received = recvfrom(e->sockfd, buffer, MAX_BUFFER_SIZE - 1, 0, (struct sockaddr*)e->address, &address_size)) > 0) {
+        && (bytes_received = recvfrom(e->sockfd, buffer, MAX_BUFFER_SIZE - 1, 0, (struct sockaddr*)e->address, &address_size)) >= 0) {
         buffer[bytes_received] = '\0';
         return buffer;
     }else if(e->protocol == UDP){
@@ -99,14 +100,16 @@ void free_endpoint(struct Endpoint* e){
     if(e == NULL) return;
 
     if(e->sockfd >= 0) close(e->sockfd);
-    if(e->hostname != NULL) free(e->hostname);
-    if(e->ip_address != NULL) free(e->ip_address);
     if(e->address != NULL) free(e->address);
-    
+
     free(e);
 }
 
 void log_endpoint(struct Endpoint* e){
+    if(e == NULL){
+        throw_error(e, "Invalid argument passed to log_endpoint(...)");
+    }
+
     printf(
         "Endpoint {\n"
         "\tsockfd: %d\n"

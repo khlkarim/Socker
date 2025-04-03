@@ -3,6 +3,6 @@
 
 #include "endpoint.h"
 
-void connect_to(struct Endpoint*);
+void connect_to(struct Endpoint* server);
 
 #endif

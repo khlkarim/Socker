@@ -3,21 +3,25 @@
 #include "server.h"
 
 int main(int argc, char** argv){
-    // create endpoint
-    struct Endpoint* e = create_endpoint(TCP);
+    // Create endpoint
+    struct Endpoint* e = create_endpoint(TCP, "localhost", "127.0.0.1", 8080);
 
-    // start listen
+    // Start listen
     listen_to(e);
 
-    // accept connexions
+    // Accept connexions
     struct Endpoint* client = accept_connexion(e);
 
-    // communicate
-    char* request;
-
-    while(request = receive_from(client)){
+    // Communicate
+    char* request = receive_from(client);
+    while(request[0] != '\0'){
         printf("Client said: %s\n", request);
+        request = request = receive_from(client);
     }
 
+    logger(INFO, "Connection ended");
+
+    free_endpoint(e);
+    free_endpoint(client);
     return 0;
 }
