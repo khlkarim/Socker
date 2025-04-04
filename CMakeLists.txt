@@ -17,7 +17,7 @@ add_library(mylib STATIC
 target_include_directories(mylib PUBLIC include)
 
 # Collect all test files
-file(GLOB TEST_SOURCES "test/mode_concurrent/mono_service/*.c")
+file(GLOB TEST_SOURCES "test/mode_concurrent/multi_service/*.c")
 foreach(test_file ${TEST_SOURCES})
     get_filename_component(test_name ${test_file} NAME_WE)
     add_executable(${test_name} ${test_file})

@@ -21,8 +21,8 @@ int main(int argc, char** argv){
     struct Endpoint *e = create_endpoint(UDP, "localhost", "127.0.0.1", 8080);
     struct Endpoint *client = create_udp_client(e);
 
-    // start listen
-    listen_to(e);
+    // bind
+    bind_to(e);
 
     while(true){
         char* request = receive_from(client);

@@ -42,7 +42,7 @@ void send_to(struct Endpoint* e, const char* request) {
 
     // Send via TCP
     if (e->protocol == TCP 
-        && send(e->sockfd, request, strlen(request), 0) < 0) {
+        && send(e->sockfd, request, strlen(request), 0) <= 0) {
         throw_error(e, "Send failed");
     }else if(e->protocol == TCP){
         logger(INFO, "Request sent successfully");
@@ -51,7 +51,7 @@ void send_to(struct Endpoint* e, const char* request) {
 
     // Send via UDP
     if (e->protocol == UDP 
-        && sendto(e->sockfd, request, strlen(request), 0, (struct sockaddr*)e->address, sizeof(*(e->address))) < 0){
+        && sendto(e->sockfd, request, strlen(request), 0, (struct sockaddr*)e->address, sizeof(*(e->address))) <= 0){
         throw_error(e, "Send failed");
     }else if(e->protocol == UDP){
         logger(INFO, "Request sent successfully");

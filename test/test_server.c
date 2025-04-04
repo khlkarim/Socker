@@ -14,7 +14,6 @@ int main(int argc, char** argv){
 
     // communicate
     char* request = receive_from(client);
-
     printf("Client said: %s\n", request);
 
     return 0;
