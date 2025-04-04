@@ -1,6 +1,27 @@
-# Networking Library
+# Socker
 
-This is a static library that abstracts the Berkeley Socket API, designed for use in HTTP/TCP servers and clients.
+This is a C static library that simplifies working with the Unix socket API. 
+
+It provides wrapper functions for socket creation, binding, listening, connecting, and communication, handling common errors and boilerplate code.
+
+
+## Installation
+
+To build the library, you'll need to have CMake installed on your system.
+
+Clone the repository:
+```bash
+git clone git@github.com:khlkarim/Socker.git
+cd Socker
+```
+
+Build the library using CMake:
+```bash
+mkdir build
+cd build
+cmake ..
+make
+```
 
 ## Usage
 
@@ -11,8 +32,4 @@ This is a static library that abstracts the Berkeley Socket API, designed for us
 
 - Functionality for building HTTP requests and responses.
 - `Request` and `Response` structures.
-- Constructors for `Request` and `Response` structs.
-[*] Generalise beyond HTTP
 - Stats (Packets recieved and lost)
-[*] Make the endpoint hold more info (like the type/protocol)
-- Make three functions that realize the services and then run each one on a thread
