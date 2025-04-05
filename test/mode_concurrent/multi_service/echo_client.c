@@ -10,10 +10,16 @@ int main(int argc, char** argv){
     // Communicate with it
     send_to(e, "Echo");
 
-    char* request = (char*) malloc(MAX_BUFFER_SIZE * sizeof(char));
+    char* request;
     do{
-        printf("Message: ");scanf("%s", request);
+        if(request != NULL) free(request);
+
+        request = (char*) malloc(MAX_BUFFER_SIZE * sizeof(char));
+        printf("Message: ");
+        scanf("%s", request);
         send_to(e, request);
+        free(request);
+
         request = receive_from(e);
         printf("Server: %s\n", request);
     }while(strlen(request) > 0 && strcmp(request, "exit") != 0);

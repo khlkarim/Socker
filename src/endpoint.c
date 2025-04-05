@@ -105,6 +105,12 @@ void free_endpoint(struct Endpoint* e){
     free(e);
 }
 
+void free_udp_client(struct Endpoint* e){
+    if(e == NULL) return;
+    if(e->address != NULL) free(e->address);
+    free(e);
+}
+
 void log_endpoint(struct Endpoint* e){
     if(e == NULL){
         throw_error(e, "Invalid argument passed to log_endpoint(...)");

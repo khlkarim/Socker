@@ -9,8 +9,10 @@ int main(int argc, char** argv){
 
     // Communicate with it
     send_to(e, "Random");
+    
     char* request = receive_from(e);
     printf("Server: %s\n", request);
+    free(request);
 
     free_endpoint(e);
     return 0;

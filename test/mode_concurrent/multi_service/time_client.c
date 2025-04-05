@@ -10,12 +10,14 @@ int main(int argc, char** argv){
     // Communicate with it
     send_to(e, "Time");
 
-    char* request;
+    char* responce = NULL;
     do{
-        request = receive_from(e);
-        printf("Server: %s\n", request);
-    }while(strlen(request) > 0 && strcmp(request, "Au Revoir") != 0);
+        if(responce != NULL) free(responce);
+        responce = receive_from(e);
+        printf("Server: %s (%zu)\n", responce, strlen(responce));
+    }while(strlen(responce) > 0 && strcmp(responce, "Au Revoir") != 0);
 
+    free(responce);
     free_endpoint(e);
     return 0;
 }

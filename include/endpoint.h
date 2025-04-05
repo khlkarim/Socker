@@ -19,6 +19,7 @@ struct Endpoint* create_udp_client(struct Endpoint* server);
 void throw_error(struct Endpoint*, const char* msg);
 void log_endpoint(struct Endpoint*);
 void free_endpoint(struct Endpoint*);
+void free_udp_client(struct Endpoint*);
 
 void send_to(struct Endpoint*, const char*);
 char* receive_from(struct Endpoint*);

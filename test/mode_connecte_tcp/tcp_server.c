@@ -29,19 +29,22 @@ int main(int argc, char** argv){
         // Communicate
         char* request = receive_from(client);
         printf("Client said: %s\n", request);
+        free(request);
 
         char* current_time;
         for(int i = 0;i<N;i++){
             current_time = get_current_time();
             send_to(client, current_time);
+            free(current_time);
+
             sleep(1);
         }
         send_to(client, "Au Revoir");
+        free_endpoint(client);
 
         logger(INFO, "Connection ended");
     }
 
     free_endpoint(e);
-    free_endpoint(client);
     return 0;
 }

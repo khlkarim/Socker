@@ -36,7 +36,6 @@ int main(int argc, char** argv){
     }
 
     free_endpoint(e);
-    free_endpoint(client);
     return 0;
 }
 
@@ -75,16 +74,21 @@ void handle_connection(struct Endpoint* client){
     }
 
     logger(INFO, "Connection ended");
+    free_endpoint(client);
 }
 
 void echo_service(struct Endpoint* client){
     char* request;
 
     do{
+        if(request != NULL) free(request);
+
         request = receive_from(client);
         printf("Client said: %s\n", request);
         send_to(client, request);
     }while(strcmp(request, "exit") != 0);
+
+    free(request);
 }
 
 void time_service(struct Endpoint* client){
@@ -92,6 +96,8 @@ void time_service(struct Endpoint* client){
     for(int i = 0;i<N;i++){
         current_time = get_current_time();
         send_to(client, current_time);
+        free(current_time);
+
         sleep(1);
     }
     send_to(client, "Au Revoir");

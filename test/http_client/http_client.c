@@ -8,9 +8,9 @@ struct Request {
 };
 
 char* http_stringify_request(const struct Request* request) {
-    char* s = (char*) malloc(512 * sizeof(char));
+    char* s = (char*) malloc(600 * sizeof(char));
 
-    snprintf(s, 512, "%s %s %s\r\nHost: %s\r\nConnection: close\r\n\r\n",
+    snprintf(s, 600, "%s %s %s\r\nHost: %s\r\nConnection: close\r\n\r\n",
              request->method, request->target, request->version, request->host);
 
     return s;
@@ -46,10 +46,11 @@ int main(int argc, char** argv){
     connect_to(e);
 
     // Communicate with the server
-    send_to(e, http_stringify_request(request));
+    char* buffer = http_stringify_request(request);
+    send_to(e, buffer);
 
-    char* buffer;
     do{
+        free(buffer);
         buffer = receive_from(e);
         printf("%s", buffer);
     } while(strlen(buffer)>0);

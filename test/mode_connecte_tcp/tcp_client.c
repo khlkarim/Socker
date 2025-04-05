@@ -12,12 +12,14 @@ int main(int argc, char** argv){
     // Communicate with it
     send_to(e, "Bonjour");
 
-    char* responce;
+    char* responce = NULL;
     do{
+        if(responce != NULL) free(responce);
         responce = receive_from(e);
         printf("Server: %s (%zu)\n", responce, strlen(responce));
     }while(strlen(responce) > 0 && strcmp(responce, "Au Revoir") != 0);
 
+    free(responce);
     free_endpoint(e);
     return 0;
 }
