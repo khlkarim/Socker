@@ -17,6 +17,7 @@
 #include "log.h"
 
 typedef enum{
+    NONE=0,
     TCP=1,
     UDP=2
 } Protocol;

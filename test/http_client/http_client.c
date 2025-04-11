@@ -1,5 +1,7 @@
 #include  "client.h"
 
+#define HTTP_PORT 80
+
 struct Request {
     char method[16];
     char target[256];
@@ -39,13 +41,13 @@ int main(int argc, char** argv){
     // Construct http request
     struct Request* request = http_build_request();
 
-    // Create endpoint
-    struct Endpoint* e = create_endpoint(TCP, request->host, NULL, 80);
+    // Creation de l'endpoint
+    struct Endpoint* e = create_endpoint(TCP, request->host, NULL, HTTP_PORT);
 
-    // Connect to the server
+    // Connection au serveur
     connect_to(e);
 
-    // Communicate with the server
+    // Communication avec le serveur
     char* buffer = http_stringify_request(request);
     send_to(e, buffer);
 

@@ -7,36 +7,122 @@
 #include "server.h"
 #include <time.h>
 #include <math.h>
+#include <pthread.h>
 #define N 10
 
 char* get_current_time();
 int get_random_int();
-void handle_connection(struct Endpoint*);
 
-void echo_service(struct Endpoint*);
-void time_service(struct Endpoint*);
-void random_service(struct Endpoint*);
+void echo_service(void*);
+void time_service(void*);
+void random_service(void*);
+
+void mono_service(void(* service)(struct Endpoint*), int port);
 
 int main(int argc, char** argv){
-    // Create endpoint
-    struct Endpoint* e = create_endpoint(TCP, "localhost", "127.0.0.1", 8080);
-    struct Endpoint* client = NULL;
+    pid_t pid = fork();
 
-    // Start listening
+    if(pid == 0){
+        pid_t pid = fork();
+    }
+
+    int ports[] = {8000, 8001, 8002};
+    void (*services[])(struct Endpoint*) = {echo_service, time_service, random_service};
+
+    mono_service(services[pid], ports[pid]);
+    return 0;
+}
+
+void mono_service(void(*service)(struct Endpoint*), int port){
+    // create endpoint
+    struct Endpoint *e = create_endpoint(TCP, "localhost", "127.0.0.1", port);
+    struct Endpoint *client;
+
+    // start listen
     listen_to(e);
 
-    // Accept connexions
-    while(client = accept_connexion(e)){
-        pid_t pid = fork();
-
-        if(pid == 0){
-            handle_connection(client);
-            return 0;
+    while (client = accept_connexion(e)) {
+        // Create a new thread to handle the client
+        pthread_t thread;
+        if (pthread_create(&thread, NULL, service, client) != 0) {
+            perror("Failed to create thread");
+            free_endpoint(client);
+            continue;
         }
+
+        // Detach the thread to allow it to clean up after itself
+        pthread_detach(thread);
     }
 
     free_endpoint(e);
     return 0;
+}
+
+void time_service(void* arg){
+    struct Endpoint *client = (struct Endpoint *)arg;
+
+    // Communicate
+    char* request = receive_from(client);
+    printf("Client said: %s\n", request);
+    free(request);
+
+    char* current_time;
+    for(int i = 0; i < N; i++){
+        current_time = get_current_time();
+        send_to(client, current_time);
+        free(current_time);
+
+        sleep(1);
+    }
+    send_to(client, "Au Revoir");
+    free_endpoint(client);
+
+    logger(INFO, "Connection ended");
+
+    // Free the thread arguments
+    free(arg);
+
+    return NULL;
+}
+
+void echo_service(void* arg){
+    struct Endpoint *client = (struct Endpoint *)arg;
+
+    char* request;
+
+    do{
+        if(request != NULL) free(request);
+
+        request = receive_from(client);
+        printf("Client said: %s\n", request);
+        send_to(client, request);
+    }while(strcmp(request, "exit") != 0);
+
+    free(request);
+
+    logger(INFO, "Connection ended");
+
+    // Free the thread arguments
+    free(arg);
+}
+
+void random_service(void* arg){
+    struct Endpoint *client = (struct Endpoint *)arg;
+
+    // Communicate
+    char responce[4];
+    sprintf(responce, "%d", get_random_int());
+    send_to(client, responce);
+
+    logger(INFO, "Connection ended");
+
+    // Free the thread arguments
+    free(arg);
+}
+
+int get_random_int(){
+    srand(time(NULL));
+    return rand() % 100;
 }
 
 char* get_current_time() {
@@ -49,62 +135,4 @@ char* get_current_time() {
     strftime(buffer, 9, "%H:%M:%S", time_info);
 
     return buffer;
-}
-
-int get_random_int(){
-    srand(time(NULL));
-    return rand() % 100;
-}
-
-void handle_connection(struct Endpoint* client){
-    // determine the demanded services and put it through
-
-    // Communicate
-    char* service = receive_from(client);
-    printf("Service Demanded: %s\n", service);
-
-    if(strcmp(service, "Echo") == 0){
-        echo_service(client);
-    }else if(strcmp(service, "Time") == 0){
-        time_service(client);
-    }else if(strcmp(service, "Random") == 0){
-        random_service(client);
-    }else{
-        send_to(client, "Unsupported service");
-    }
-
-    logger(INFO, "Connection ended");
-    free_endpoint(client);
-}
-
-void echo_service(struct Endpoint* client){
-    char* request;
-
-    do{
-        if(request != NULL) free(request);
-
-        request = receive_from(client);
-        printf("Client said: %s\n", request);
-        send_to(client, request);
-    }while(strcmp(request, "exit") != 0);
-
-    free(request);
-}
-
-void time_service(struct Endpoint* client){
-    char* current_time;
-    for(int i = 0;i<N;i++){
-        current_time = get_current_time();
-        send_to(client, current_time);
-        free(current_time);
-
-        sleep(1);
-    }
-    send_to(client, "Au Revoir");
-}
-
-void random_service(struct Endpoint* client){
-    char responce[4];
-    sprintf(responce, "%d", get_random_int());
-    send_to(client, responce);
 }

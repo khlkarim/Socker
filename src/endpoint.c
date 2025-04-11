@@ -29,7 +29,7 @@ struct Endpoint* create_udp_client(struct Endpoint* server){
     struct Endpoint* client = (struct Endpoint*) malloc(sizeof(struct Endpoint));
 
     client->sockfd = server->sockfd;
-    client->protocol = UDP;
+    client->protocol = server->protocol;
     client->address = (struct sockaddr_in*) malloc(sizeof(struct sockaddr_in));
 
     return client;

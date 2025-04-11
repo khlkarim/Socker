@@ -33,3 +33,4 @@ make
 - Functionality for building HTTP requests and responses.
 - `Request` and `Response` structures.
 - Stats (Packets recieved and lost)
+- If possible simplify the Endpoint struct, is the sockaddr field necessary?
