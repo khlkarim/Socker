@@ -13,27 +13,29 @@
 char* get_current_time();
 int get_random_int();
 
-void echo_service(void*);
-void time_service(void*);
-void random_service(void*);
+void* echo_service(void*);
+void* time_service(void*);
+void* random_service(void*);
 
-void mono_service(void(* service)(struct Endpoint*), int port);
+void mono_service(void* (*service)(void*), int port);
 
 int main(int argc, char** argv){
     pid_t pid = fork();
 
+    printf("forked\n");
+
     if(pid == 0){
-        pid_t pid = fork();
+        pid = fork();
     }
 
     int ports[] = {8000, 8001, 8002};
-    void (*services[])(struct Endpoint*) = {echo_service, time_service, random_service};
+    void* (*services[])(void*) = {echo_service, time_service, random_service};
 
     mono_service(services[pid], ports[pid]);
     return 0;
 }
 
-void mono_service(void(*service)(struct Endpoint*), int port){
+void mono_service(void* (*service)(void*), int port){
     // create endpoint
     struct Endpoint *e = create_endpoint(TCP, "localhost", "127.0.0.1", port);
     struct Endpoint *client;
@@ -41,7 +43,7 @@ void mono_service(void(*service)(struct Endpoint*), int port){
     // start listen
     listen_to(e);
 
-    while (client = accept_connexion(e)) {
+    while ((client = accept_connexion(e)) != NULL) {
         // Create a new thread to handle the client
         pthread_t thread;
         if (pthread_create(&thread, NULL, service, client) != 0) {
@@ -55,10 +57,9 @@ void mono_service(void(*service)(struct Endpoint*), int port){
     }
 
     free_endpoint(e);
-    return 0;
 }
 
-void time_service(void* arg){
+void* time_service(void* arg){
     struct Endpoint *client = (struct Endpoint *)arg;
 
     // Communicate
@@ -81,14 +82,12 @@ void time_service(void* arg){
 
     // Free the thread arguments
     free(arg);
-
-    return NULL;
 }
 
-void echo_service(void* arg){
+void* echo_service(void* arg){
     struct Endpoint *client = (struct Endpoint *)arg;
 
-    char* request;
+    char* request = NULL;
 
     do{
         if(request != NULL) free(request);
@@ -106,13 +105,13 @@ void echo_service(void* arg){
     free(arg);
 }
 
-void random_service(void* arg){
+void* random_service(void* arg){
     struct Endpoint *client = (struct Endpoint *)arg;
 
     // Communicate
-    char responce[4];
-    sprintf(responce, "%d", get_random_int());
-    send_to(client, responce);
+    char response[4];
+    sprintf(response, "%d", get_random_int());
+    send_to(client, response);
 
     logger(INFO, "Connection ended");
 
