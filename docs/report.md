@@ -19,7 +19,7 @@ L’objectif principal était de comprendre et de développer différentes archi
 
 ### 2. **Guide de l'utilisateur : Construction et Exécution du Projet**
 
-Ce projet comprend une bibliothèque statique dont le code source est situé dans les dossiers `./src` et `./include`. Elle est accompagnée d'un ensemble de fichiers dans le dossier `./test`, qui implémentent les programmes client/serveur demandés en utilisant les fonctionnalités offertes par la bibliothèque.
+Les implémentations des programmes Client et Serveur sont disponibles dans le répertoire `./test`. Nous avons regroupées les sections de code redondantes dans une bibliothèque statique dont le code source se trouve dans le répertoire `./src`, tandis que ses fichiers d'en-tête sont situés dans le répertoire `./include`.
 
 Vous pouvez soit utiliser les binaires précompilés disponibles dans le dossier `./bin`, soit construire le projet à partir des sources en suivant les étapes ci-dessous.
 
@@ -59,18 +59,15 @@ Ensuite, procédez comme suit :
 
 #### **Résultats de la Construction**
 
-- Les exécutables générés seront disponibles dans le dossier `build/bin`.
-- La bibliothèque statique sera située dans le dossier `build/lib`.
+- Les exécutables générés seront disponibles dans le dossier `./build/bin`.
+- La bibliothèque statique sera située dans le dossier `./build/lib`.
 
 ---
 
 ### 3. **Solutions proposées**
-- Describe how you broke down the problem.
 - Show a diagram if helpful (e.g., class diagram, flowchart, etc.).
 
-Nous avons opté pour une approche structurée et modulaire afin de faciliter le développement et la maintenance du code.
-
-Étant donné l’usage intensif de l’API Socket dans les différentes composantes du projet, nous avons décidé d’abstraire les opérations de bas niveau liées à la gestion des sockets. Pour cela, nous avons introduit une structure appelée `Endpoint`, définie comme suit :
+Étant donné l’usage intensif de l’API Socket dans les différentes composantes du projet, nous avons décidé d’abstraire les opérations de bas niveau liées à la gestion des sockets. Pour cela, nous avons introduit une structure appelée `Endpoint`, définie dans le fichier `./include/endpoint.h` comme suit :
 
 ```c
 struct Endpoint{
@@ -94,7 +91,7 @@ Cette structure représente un point de communication, qu’il soit client ou se
 
 Autour de cette structure, nous avons défini une série de fonctions permettant de :
 
-- créer un `Endpoint` ;
+- Créer un `Endpoint` ;
 ```c
 /**
  * Crée un nouvel `Endpoint` représentant un point de communication réseau.
@@ -112,15 +109,15 @@ Autour de cette structure, nous avons défini une série de fonctions permettant
  */
 struct Endpoint* create_endpoint(Protocol protocol, char* hostname, char* ip_address, int port);
 
-// Exemple d'utilisation : (`../test/http_client/http_client.c`)
+// Exemple d'utilisation : (`./test/http_client/http_client.c`)
 struct Endpoint* client = create_endpoint(TCP, "example.com", NULL, 80); 
 // Ce client HTTP cible la page web example.com sur le port 80.
 ```
 
-- lier (`bind`) un `Endpoint` à une adresse locale ;
+- Lier (`bind`) un `Endpoint` à une adresse locale ;
 ```c
 /**
- * Cette fonction est généralement utilisée par un serveur TCP pour lier un descripteur
+ * Cette fonction est généralement utilisée par un serveur (TCP ou UDP) pour lier un descripteur
  * de socket (`Endpoint.sockfd`) à une adresse locale et un port spécifiés `Endpoint.address`.
  * Le processus de liaison associe le socket à l'adresse spécifiée, le rendant prêt à écouter
  * les connexions entrantes ou à envoyer/recevoir des données.
@@ -129,7 +126,7 @@ struct Endpoint* client = create_endpoint(TCP, "example.com", NULL, 80);
  *               - `sockfd` : Le descripteur de socket à lier.
  *               - `address` : L'adresse locale et le port auxquels lier le socket.
  *
- * @note Cette fonction est implémentée dans le fichier `../src/server.c`.
+ * @note Cette fonction est implémentée dans le fichier `./src/server.c`.
  * @note Le `Endpoint` doit être correctement initialisé avant d'appeler cette fonction.
  *       Assurez-vous que le `sockfd` est valide et que le champ `address` contient
  *       les informations d'adresse et de port souhaitées.
@@ -140,7 +137,7 @@ struct Endpoint* client = create_endpoint(TCP, "example.com", NULL, 80);
  */
 void bind_to(struct Endpoint* server);
 
-// Exemple d'utilisation :
+// Exemple d'utilisation : (`./test/mode_connecte_tcp/tcp_server.c`)
 struct Endpoint* server = create_endpoint(TCP, NULL, "127.0.0.1", 8080);
 bind_to(server);
 ```
@@ -151,7 +148,7 @@ bind_to(server);
  * Cette fonction est généralement utilisée par un client TCP pour connecter le champ `sockfd` 
  * de la structure `Endpoint` au champ `address`.
  *
- * @note Cette fonction est implémentée dans le fichier `../src/client.c`.
+ * @note Cette fonction est implémentée dans le fichier `./src/client.c`.
  * @note L'`Endpoint` doit être correctement initialisé avant d'appeler cette fonction.
  *       Assurez-vous que le `sockfd` est valide et que le champ `address` contient
  *       les informations d'adresse et de port souhaitées.
@@ -164,15 +161,15 @@ bind_to(server);
  */
 void connect_to(struct Endpoint* client);
 
-// Exemple d'utilisation :
+// Exemple d'utilisation : (`./test/mode_connecte_tcp/tcp_server.c`)
 struct Endpoint* client = create_endpoint(TCP, "example.com", NULL, 80);
 connect_to(client);
 ```
 
-- mettre un Endpoint en écoute (`listen_to`) ;
+- Mettre un Endpoint en écoute (`listen_to`) ;
 ```c
 /**
- * Cette fonction est utilisée par un serveur (TCP ou UDP) pour mettre un `Endpoint` en écoute.
+ * Cette fonction est utilisée par un serveur TCP pour mettre un `Endpoint` en écoute.
  * 
  * @details Cette fonction appelle d'abord `bind_to` sur l'`Endpoint` fourni pour lier le socket
  *          à l'adresse locale spécifiée. Dans le cas d'un serveur TCP (`Endpoint.protocol == TCP`),
@@ -181,7 +178,7 @@ connect_to(client);
  *
  * @param server Un pointeur vers la structure `Endpoint` représentant le serveur.
  *
- * @note Cette fonction est implémentée dans le fichier `../src/server.c`.
+ * @note Cette fonction est implémentée dans le fichier `./src/server.c`.
  * @note Cette fonction inclut implicitement un appel à `bind_to` pour lier le socket 
  *       à l'adresse locale spécifiée.
  * @note L'`Endpoint` doit être correctement initialisé avant d'appeler cette fonction.
@@ -193,12 +190,12 @@ connect_to(client);
  */
 void listen_to(struct Endpoint* server);
 
-// Exemple d'utilisation :
+// Exemple d'utilisation : (`./test/mode_connecte_tcp/tcp_server.c`)
 struct Endpoint* server = create_endpoint(TCP, NULL, "127.0.0.1", 8080);
-listen_to(server);
+listen_to(server); // Appel implicit à bind_to
 ```
 
-- accepter des connexions entrantes (`accept_connexion`) à partir d’un `Endpoint` ;
+- Accepter des connexions entrantes (`accept_connexion`) à partir d’un `Endpoint` ;
 ```c
 /**
  * Cette fonction est utilisée par un serveur TCP pour accepter les connexions
@@ -208,7 +205,7 @@ listen_to(server);
  *
  * @return Une structure `Endpoint` représentant le client accepté pour la connexion.
  *
- * @note Cette fonction est implémentée dans le fichier `../src/server.c`.
+ * @note Cette fonction est implémentée dans le fichier `./src/server.c`.
  * @note L'`Endpoint` du serveur doit être correctement initialisé avant d'appeler
  *       cette fonction. Assurez-vous que le `sockfd` est valide et que le champ
  *       `address` contient les informations d'adresse et de port souhaitées.
@@ -218,13 +215,13 @@ listen_to(server);
  */
 struct Endpoint* accept_connexion(struct Endpoint* server);
 
-// Exemple d'utilisation :
+// Exemple d'utilisation : (`./test/mode_connecte_tcp/tcp_server.c`)
 struct Endpoint* server = create_endpoint(TCP, NULL, "127.0.0.1", 8080);
 listen_to(server);
 struct Endpoint* client = accept_connexion(server);
 ```
 
-- envoyer des messages via la fonction `send_to` ;
+- Envoyer des messages via la fonction `send_to` ;
 ```c
 /**
  * Cette fonction est utilisée par un client ou un serveur pour envoyer un message
@@ -234,7 +231,7 @@ struct Endpoint* client = accept_connexion(server);
  * @param destination Un pointeur vers la structure `Endpoint` représentant le destinataire.
  * @param message Le message à envoyer sous forme de chaîne de caractères.
  *
- * @note Cette fonction est implémentée dans le fichier `../src/endpoint.c`.
+ * @note Cette fonction est implémentée dans le fichier `./src/endpoint.c`.
  * @note L'`Endpoint` doit être correctement initialisé avant d'appeler cette fonction.
  *       Assurez-vous que le `sockfd` est valide et que le champ `address` contient
  *       les informations d'adresse et de port souhaitées.
@@ -244,12 +241,12 @@ struct Endpoint* client = accept_connexion(server);
  */
 void send_to(struct Endpoint* destination, const char* message);
 
-// Exemple d'utilisation : (Client UDP)
+// Exemple d'utilisation : (`./test/mode_non_connecte_udp/udp_server.c`)
 struct Endpoint* serveur = create_endpoint(UDP, NULL, "127.0.0.1", 8080);
-send_to(serveur, "Hello, World!");
+send_to(serveur, "Hello");
 ```
 
-- recevoir des messages via la fonction `receive_from` ;
+- Recevoir des messages via la fonction `receive_from` ;
 ```c
 /**
  * Cette fonction peut être utilisée par un client ou un serveur pour recevoir un message
@@ -261,7 +258,7 @@ send_to(serveur, "Hello, World!");
  * @return Une chaîne de caractères contenant le message reçu. La mémoire allouée pour
  *         le message doit être libérée par l'appelant après utilisation.
  *
- * @note Cette fonction est implémentée dans le fichier `../src/endpoint.c`.
+ * @note Cette fonction est implémentée dans le fichier `./src/endpoint.c`.
  * @note L'`Endpoint` doit être correctement initialisé avant d'appeler cette fonction.
  *       Assurez-vous que le `sockfd` est valide et que le champ `address` contient
  *       les informations d'adresse et de port souhaitées.
@@ -271,14 +268,14 @@ send_to(serveur, "Hello, World!");
  */
 char* receive_from(struct Endpoint* source);
 
-// Exemple d'utilisation :
+// Exemple d'utilisation : (`./test/mode_non_connecte_udp/udp_server.c`)
 struct Endpoint* server = create_endpoint(UDP, NULL, "127.0.0.1", 8080);
 struct Endpoint* client = create_udp_client(server);
 bind_to(server);
 char* request = receive_from(client);
 ```
 
-- fermer proprement un `Endpoint`.
+- Fermer proprement un `Endpoint`.
 ```c
 /**
  * Cette fonction est utilisée pour libérer les ressources associées à un `Endpoint`.
@@ -301,9 +298,7 @@ Ces fonctions encapsulent la logique de gestion des erreurs, ce qui permet de so
 
 ---
 
-### 6. **Programmes Client/Serveur**
-- How did you test your code?
-- What test cases did you consider?
+### 4. **Programmes Client/Serveur**
 - Include screenshots of outputs if needed or a small sample of inputs/outputs.
 
 #### 1. **Client HTTP**
@@ -330,30 +325,25 @@ struct Request {
 ##### **Étapes du Programme**
 
 1. **Construction de la Requête HTTP**  
-    Une requête HTTP est construite en utilisant la fonction `http_build_request()` définie dans le même fichier. Cette fonction interagit avec l'utilisateur pour collecter les détails nécessaires à la requête, tels que la méthode HTTP (par exemple, GET ou POST), la cible (par exemple, /index.html), la version HTTP (par exemple, HTTP/1.1), et l'hôte (par exemple, www.example.com). Elle retourne un pointeur vers une structure `Request` contenant ces informations.
-
     ```c
     struct Request* request = http_build_request();
     ```
+    - Cette fonction permet de lire une requête HTTP saisie par l'utilisateur.
 
 2. **Création d'un Endpoint**  
-   Un point de terminaison est créé avec la fonction `create_endpoint()`. Cette fonction configure une connexion TCP vers l'hôte spécifié dans la requête, sur le port 80 (port HTTP par défaut).
-
    ```c
    struct Endpoint* serveur = create_endpoint(TCP, request->host, NULL, HTTP_PORT);
    ```
+   - Cette fonction configure une connexion TCP vers l'hôte spécifié, sur le port 80 (port HTTP par défaut).
 
 3. **Connexion au Serveur**  
-   La fonction `connect_to()` établit une connexion entre le client et le serveur.
-
    ```c
    connect_to(e);
    ```
+   - La fonction `connect_to()` établit une connexion entre le client et le serveur.
+
 
 4. **Envoi de la Requête et Réception de la Réponse**  
-   - La requête HTTP est convertie en une chaîne de caractères avec `http_stringify_request()` et envoyée au serveur avec `send_to()`.
-    - Une boucle est utilisée pour recevoir les réponses du serveur via la fonction `receive_from()`. À chaque itération, les données reçues sont affichées sur la console à l'aide de `printf()`. La boucle se poursuit tant que des données sont disponibles, c'est-à-dire que la longueur de la chaîne reçue est strictement supérieure à 0. Cela permet de gérer les réponses volumineuses qui pourraient dépasser la taille du tampon prédéfini.
-
    ```c
    char* buffer = http_stringify_request(request);
    send_to(e, buffer);
@@ -364,6 +354,48 @@ struct Request {
        printf("%s", buffer);
    } while (strlen(buffer) > 0);
    ```
+   - La requête HTTP est convertie en une chaîne de caractères avec `http_stringify_request()` et envoyée au serveur avec `send_to()`.
+    - Une boucle est utilisée pour recevoir les réponses du serveur via la fonction `receive_from()`. Cela permet de gérer les réponses volumineuses qui pourraient dépasser la taille du tampon prédéfini.
+
+---
+
+##### **Manipulation**
+
+![Analyse des paquets échangés entre le client HTTP et un serveur](./images/http_client.png)
+
+###### Comment s’établit la connexion au niveau HTTP?
+HTTP peut fonctionner de deux manières :
+- **HTTP/1.0** : chaque requête = une nouvelle connexion TCP
+- **HTTP/1.1 et HTTP/2** : connexions **persistantes** par défaut (utilisation du header `Connection: keep-alive`)
+
+###### Comment s’établit la connexion au niveau TCP?: le **three-way handshake**
+1. **Client → Serveur :** envoie un paquet **SYN** (synchronize)
+2. **Serveur → Client :** répond avec un **SYN-ACK**
+3. **Client → Serveur :** renvoie un **ACK**
+
+> Après ces trois échanges, la connexion TCP est établie.
+
+---
+
+###### Qui décide de fermer la connexion ? 
+> Niveau HTTP:
+- **Le client** peut fermer après avoir reçu la réponse.
+- **Le serveur** peut fermer après un timeout (ex : `keep-alive timeout`) (client specifie)
+
+> Niveau TCP :
+Fermeture en **four-way handshake** :
+1. Un des deux (souvent **le serveur** dans HTTP/1.1 après un timeout) envoie un paquet **FIN**
+2. L’autre répond **ACK**
+3. L’autre envoie à son tour **FIN**
+4. Réponse finale **ACK**
+
+---
+
+###### Quels ports sont utilisés ?
+- **Serveur :** ports bien connus
+  - **HTTP :** port **80**
+  - **HTTPS :** port **443**
+- **Client :** port **éphémère** (automatiquement choisi par le SE, ex : 49152–65535)
 
 ---
 
@@ -387,46 +419,37 @@ Voici les étapes principales suivies par le serveur pour gérer les connexions 
     ```c
     listen_to(e);
     ```
-    - Le serveur commence à écouter les connexions entrantes sur l'endpoint défini. (appel implicit à bind_to)
+    - Le serveur commence à écouter les connexions entrantes sur l'endpoint défini. (Appel implicit à bind_to)
 
 3. **Acceptation des connexions** :
     ```c
     while((client = accept_connexion(e)) != NULL) {
     ```
-    - Une boucle est utilisée pour accepter les connexions des clients.
     - L'appel à `accept_connexion` est bloquant, ce qui signifie que le programme attendra qu'un client se connecte avant de continuer.
     - Chaque client accepté est représenté par un nouvel endpoint (`client`).
 
 4. **Communication avec le client** :
-    - Le serveur reçoit un message du client :
       ```c
       char* request = receive_from(client);
-      printf("Client said: %s\n", request);
+      printf("Client said: %s\n", request); // Client said: Bonjour
       ```
+    - Le serveur reçoit un message du client.
 
-    - Ensuite, le serveur envoie l'heure actuelle au client dans une boucle :
       ```c
-      for (int i = 0; i < N; i++) {
+      for (int i = 0; i < N; i++) { // N=60
             current_time = get_current_time();
             send_to(client, current_time);
             free(current_time);
             sleep(1);
       }
       ```
-      - À chaque itération, l'heure actuelle est envoyée.
-      - Le programme attend une seconde avant de continuer.
-
-    - Enfin, le serveur envoie un message de fin et libère les ressources associées au client :
-      ```c
-      send_to(client, "Au Revoir");
-      free_endpoint(client);
-      ```
+    - Ensuite, le serveur envoie l'heure actuelle au client dans une boucle.
 
 ---
 
 ##### **Client TCP**
 
-Le client TCP est conçu pour se connecter au serveur et échanger des messages. Voici les étapes principales :
+Voici les étapes principales suivies par le client pour se connecter au serveur et échanger des messages :
 
 1. **Création d'un Endpoint** :
     ```c
@@ -442,22 +465,27 @@ Le client TCP est conçu pour se connecter au serveur et échanger des messages.
     - Le client établit une connexion avec le serveur via l'endpoint défini.
 
 3. **Communication avec le serveur** :
-    - Le client envoie un message initial au serveur :
-      ```c
-      send_to(e, "Bonjour");
-      ```
+    ```c
+    send_to(e, "Bonjour");
+    ```
+    - Le client initie la communication avec le serveur.
 
-    - Ensuite, il entre dans une boucle pour recevoir les messages du serveur :
-      ```c
+    ```c
+      int nbMessages = 0;
       char* response = NULL;
       do {
-            if (response != NULL) free(response);
-            response = receive_from(e);
-            printf("Server: %s (%zu)\n", response, strlen(response));
+        if (response != NULL) free(response);
+        
+        response = receive_from(e);
+        printf("Serveur : %s (%zu)\n", response, strlen(response));
+        
+        nbMessages++;
       } while (strlen(response) > 0 && strcmp(response, "Au Revoir") != 0);
-      ```
-      - À chaque itération, le client reçoit un message, l'affiche, puis vérifie si le message est "Au Revoir".
-      - Si le message est "Au Revoir", la boucle se termine.
+    ```
+
+---
+
+##### **Manipulation**
 
 ---
 

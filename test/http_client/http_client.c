@@ -38,16 +38,12 @@ struct Request* http_build_request() {
 }
 
 int main(int argc, char** argv){
-    // Construct http request
     struct Request* request = http_build_request();
 
-    // Creation de l'endpoint
     struct Endpoint* e = create_endpoint(TCP, request->host, NULL, HTTP_PORT);
 
-    // Connection au serveur
     connect_to(e);
 
-    // Communication avec le serveur
     char* buffer = http_stringify_request(request);
     send_to(e, buffer);
 
