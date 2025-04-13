@@ -1,22 +1,20 @@
 #include "client.h"
 
 int main(int argc, char** argv){
-    // Create an endpoint
-    struct Endpoint* e = create_endpoint(TCP, "localhost", "127.0.0.1", 8080);
+    struct Endpoint* e = create_endpoint(TCP, "localhost", "127.0.0.1", 8000);
 
-    // Connect to it
     connect_to(e);
 
-    // Communicate with it
     send_to(e, "Echo");
 
-    char* request;
+    char* request = NULL;
     do{
         if(request != NULL) free(request);
-
         request = (char*) malloc(MAX_BUFFER_SIZE * sizeof(char));
+        
         printf("Message: ");
         scanf("%s", request);
+        
         send_to(e, request);
         free(request);
 

@@ -45,7 +45,7 @@ void send_to(struct Endpoint* e, const char* request) {
         && send(e->sockfd, request, strlen(request), 0) <= 0) {
         throw_error(e, "Send failed");
     }else if(e->protocol == TCP){
-        logger(INFO, "Request sent successfully");
+        logger(INFO, "Message sent successfully");
         return;
     }
 
@@ -54,7 +54,7 @@ void send_to(struct Endpoint* e, const char* request) {
         && sendto(e->sockfd, request, strlen(request), 0, (struct sockaddr*)e->address, sizeof(*(e->address))) <= 0){
         throw_error(e, "Send failed");
     }else if(e->protocol == UDP){
-        logger(INFO, "Request sent successfully");
+        logger(INFO, "Message sent successfully");
         return;
     }
 

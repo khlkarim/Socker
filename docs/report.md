@@ -307,58 +307,6 @@ L'implémentation du client HTTP se trouve dans le fichier `./test/http_client/h
 
 ---
 
-##### **Structure de la Requête HTTP**
-
-Pour simplifier la gestion des requêtes HTTP, on a proposé une structure `Request` définie comme suit :
-
-```c
-struct Request {
-    char method[16];   // Méthode HTTP (ex : GET, POST, ...)
-    char target[256];  // Cible de la requête (ex : /index.html)
-    char version[16];  // Version HTTP (ex : HTTP/1.1)
-    char host[256];    // Hôte (ex : www.example.com)
-};
-```
-
----
-
-##### **Étapes du Programme**
-
-1. **Construction de la Requête HTTP**  
-    ```c
-    struct Request* request = http_build_request();
-    ```
-    - Cette fonction permet de lire une requête HTTP saisie par l'utilisateur.
-
-2. **Création d'un Endpoint**  
-   ```c
-   struct Endpoint* serveur = create_endpoint(TCP, request->host, NULL, HTTP_PORT);
-   ```
-   - Cette fonction configure une connexion TCP vers l'hôte spécifié, sur le port 80 (port HTTP par défaut).
-
-3. **Connexion au Serveur**  
-   ```c
-   connect_to(e);
-   ```
-   - La fonction `connect_to()` établit une connexion entre le client et le serveur.
-
-
-4. **Envoi de la Requête et Réception de la Réponse**  
-   ```c
-   char* buffer = http_stringify_request(request);
-   send_to(e, buffer);
-
-   do {
-       free(buffer);
-       buffer = receive_from(e);
-       printf("%s", buffer);
-   } while (strlen(buffer) > 0);
-   ```
-   - La requête HTTP est convertie en une chaîne de caractères avec `http_stringify_request()` et envoyée au serveur avec `send_to()`.
-    - Une boucle est utilisée pour recevoir les réponses du serveur via la fonction `receive_from()`. Cela permet de gérer les réponses volumineuses qui pourraient dépasser la taille du tampon prédéfini.
-
----
-
 ##### **Manipulation**
 
 ![Analyse des paquets échangés entre le client HTTP et un serveur](./images/http_client.png)
@@ -403,89 +351,56 @@ Fermeture en **four-way handshake** :
 
 - Les implémentations des client et serveur TCP se trouvent dans le dossier `./test/mode_connecte_tcp`.
 
-##### **Serveur TCP**
-
-Voici les étapes principales suivies par le serveur pour gérer les connexions entrantes et communiquer avec les clients:
-
-1. **Création d'un Endpoint** :
-    ```c
-    struct Endpoint* e = create_endpoint(TCP, "localhost", "127.0.0.1", 8080);
-    ```
-    - Un endpoint est créé pour le protocole TCP.
-    - Il est lié à l'adresse IP `127.0.0.1` (localhost) et au port `8080`.
-    - Cet endpoint représente le serveur qui écoutera les connexions entrantes.
-
-2. **Mise en écoute** :
-    ```c
-    listen_to(e);
-    ```
-    - Le serveur commence à écouter les connexions entrantes sur l'endpoint défini. (Appel implicit à bind_to)
-
-3. **Acceptation des connexions** :
-    ```c
-    while((client = accept_connexion(e)) != NULL) {
-    ```
-    - L'appel à `accept_connexion` est bloquant, ce qui signifie que le programme attendra qu'un client se connecte avant de continuer.
-    - Chaque client accepté est représenté par un nouvel endpoint (`client`).
-
-4. **Communication avec le client** :
-      ```c
-      char* request = receive_from(client);
-      printf("Client said: %s\n", request); // Client said: Bonjour
-      ```
-    - Le serveur reçoit un message du client.
-
-      ```c
-      for (int i = 0; i < N; i++) { // N=60
-            current_time = get_current_time();
-            send_to(client, current_time);
-            free(current_time);
-            sleep(1);
-      }
-      ```
-    - Ensuite, le serveur envoie l'heure actuelle au client dans une boucle.
-
----
-
-##### **Client TCP**
-
-Voici les étapes principales suivies par le client pour se connecter au serveur et échanger des messages :
-
-1. **Création d'un Endpoint** :
-    ```c
-        struct Endpoint* e = create_endpoint(TCP, "localhost", "127.0.0.1", 8080);
-    ```
-    - Cela crée un endpoint pour le protocole TCP.
-    - L'endpoint est lié à l'adresse IP `127.0.0.1` et au port `8080`, représentant le serveur avec lequel le client souhaite communiquer.
-
-2. **Connexion au serveur** :
-    ```c
-    connect_to(e);
-    ```
-    - Le client établit une connexion avec le serveur via l'endpoint défini.
-
-3. **Communication avec le serveur** :
-    ```c
-    send_to(e, "Bonjour");
-    ```
-    - Le client initie la communication avec le serveur.
-
-    ```c
-      int nbMessages = 0;
-      char* response = NULL;
-      do {
-        if (response != NULL) free(response);
-        
-        response = receive_from(e);
-        printf("Serveur : %s (%zu)\n", response, strlen(response));
-        
-        nbMessages++;
-      } while (strlen(response) > 0 && strcmp(response, "Au Revoir") != 0);
-    ```
-
 ---
 
 ##### **Manipulation**
+
+- Sans delay:
+![Analyse des paquets échangés entre le client et le serveur TCP](./images/tcp1.png)
+
+- Avec retard:
+![Analyse des paquets échangés entre le client et le serveur TCP](./images/tcp2.png)
+
+###### Comptage des messages reçues
+
+Les segments TCP ne correspondent pas nécessairement aux appels `send()` ou `write()` effectués sur le socket. En effet, TCP est un protocole **orienté flux**, et non **orienté message**. Cela signifie qu'il peut :
+
+- **Fragmenter** un seul appel à `write()` en plusieurs segments TCP.
+- **Fusionner** plusieurs appels successifs à `write()` dans un seul segment (en raison de l'algorithme de Nagle, du buffering, etc.).
+
+Pour préserver la structure des messages dans une communication TCP, il est nécessaire d'implémenter une méthode de **délimitation**. Voici quelques approches courantes :
+
+1. **Utilisation d'un délimiteur** :
+    - Ajouter un caractère ou une séquence spécifique (par exemple : `\n`) à la fin de chaque message pour indiquer sa fin.
+
+2. **En-tête avec la taille du message** :
+    - Inclure un en-tête au début de chaque message, spécifiant la taille du message à suivre. Cela permet au récepteur de savoir combien d'octets lire pour reconstituer le message complet.
+
+Ces techniques permettent de garantir que les messages sont correctement interprétés, même si TCP segmente ou fusionne les données transmises.
+
+---
+
+###### Que se passe t-il si vous débranchez le câble réseau?
+
+- **Débranchement physique** :
+    - Lorsque le lien réseau est physiquement coupé, le programme ne détecte pas immédiatement la déconnexion.
+    - TCP met un certain temps à détecter une déconnexion, en s'appuyant sur des mécanismes tels que les timeouts et les retransmissions.
+    - Les appels `recv()` peuvent :
+        - Bloquer indéfiniment.
+        - Retourner une erreur après un certain temps (par exemple, `ETIMEDOUT`, `ECONNRESET`, etc.).
+
+- **Débranchement et rebranchement rapide** :
+    - Si le câble réseau est rebranché rapidement et que le système conserve les connexions, la communication peut reprendre normalement.
+    - Cependant, si le serveur ou le client a tenté d'envoyer des données pendant la coupure, une erreur de socket peut survenir, entraînant la fermeture de la connexion.
+
+---
+
+###### **Pouvez-vous avec votre implémentation actuelle servir plusieurs clients ?**
+
+Oui, notre implémentation permet de servir plusieurs clients. Cependant, les connexions sont traitées de manière séquentielle. Cela signifie que lorsque le serveur termine une connexion avec un client, il peut alors commencer une nouvelle connexion avec un autre client.
+
+#### **Que se passe-t-il si vous lancez un client supplémentaire alors que la file est pleine ?**
+Si un client supplémentaire est lancé alors que la file d'attente est pleine, sa connexion sera rejetée par le serveur. Cela se produit parce que le serveur ne peut pas accepter plus de connexions que la limite définie par le backlog.
 
 ---
 
@@ -494,92 +409,63 @@ Voici les étapes principales suivies par le client pour se connecter au serveur
 - Les implémentations des client et serveur UDP se trouvent dans le dossier `./test/mode_non_connecte_udp`.
 - Contrairement aux communications en mode connecté (TCP), les communications en mode non connecté (UDP) ne nécessitent pas que le serveur écoute ou accepte des connexions. De même, le client n'a pas besoin d'établir une connexion préalable avec le serveur.
 
-##### **Serveur UDP**
+---
 
-Voici les étapes principales suivies par le serveur pour communiquer avec les clients:
+##### **Manipulation**
 
-1. **Création d'un Endpoint** :
-    ```c
-    struct Endpoint* serveur = create_endpoint(UDP, "localhost", "127.0.0.1", 8080);
-    ```
-    - Un endpoint est créé pour le protocole UDP.
-    - Il est lié à l'adresse IP `127.0.0.1` (localhost) et au port `8080`.
-    - Cet endpoint représente le serveur qui écoutera les connexions entrantes.
+![Analyse des paquets échangés entre le client et le serveur UDP](./images/udp.png)
 
-2. **Creation de l'Endpoint cliente**:
-    ```c
-    struct Endpoint *client = create_udp_client(serveur);
-    ```
-    - Pour simplifier et unifier l'utilisation des fonctions `send_to` et `receive_from` dans tous les types de communications (TCP et UDP), nous avons décidé d'ajouter la fonction utilitaire `create_udp_client`. 
-    - Cette fonction prend en entrée un `Endpoint` représentant un serveur UDP et retourne un `Endpoint` représentant un client générique pour ce serveur.
-    - La fonction est définie dans le fichier `./src/server.c`.
+###### Comptage des messages reçues
 
-3. **Liaison du serveur à une adresse**:
-    ```c
-    bind_to(serveur);
-    ```
-    - Cela signifie que le serveur "réserve" la adresse pour écouter les connexions ou recevoir des messages.
-    - Sans cette étape, le socket resterait "anonyme" et ne pourrait pas recevoir de données, car aucune adresse ne lui serait associée.
-    - Elle évite les conflits avec d'autres applications qui pourraient essayer d'utiliser la même adresse ou le même port.
+Si le serveur envoie rapidement une grande quantité de messages, certains peuvent être perdus dans les cas suivants :
+- Le client ne lit pas assez vite.
+- La taille du buffer de réception (`SO_RCVBUF`) est dépassée.
 
-4. **Communication avec le client** :
-    - Contrairement à un serveur TCP, le serveur UDP ne maintient pas de connexion persistante avec le client. Il utilise les informations de l'endpoint client pour envoyer les messages de réponse.
-    - La boucle `while(true)` permet au serveur de traiter plusieurs requêtes successives de différents clients sans nécessiter de nouvelle connexion.
-
-    - Le serveur reçoit un message du client :
-    ```c
-    char* request = receive_from(client);
-    printf("Client said: %s\n", request);
-    free(request);
-    ```
-
-    - Ensuite, le serveur envoie l'heure actuelle au client dans une boucle :
-    ```c
-    for (int i = 0; i < N; i++) {
-        current_time = get_current_time();
-        send_to(client, current_time);
-        free(current_time);
-        sleep(1);
-    }
-    ```
-
-    - Enfin, le serveur envoie un message de fin :
-    ```c
-    send_to(client, "Au Revoir");
-    ```
+Donc, il y a des pertes de messages.
 
 ---
 
-##### **Client UDP**
+### Observation avec Wireshark: Segments UDP = Messages envoyés ?
+**Oui** : Chaque appel à `sendto()` (ou `sendmsg()`) génère un datagramme UDP unique.  
+De même, chaque appel à `recvfrom()` lit exactement un datagramme.
 
-Voici les étapes principales suivies par le client pour communiquer avec le serveur:
+- **UDP préserve les limites des messages** :  
+    UDP est **orienté message** (message-based), contrairement à TCP qui est **orienté flux** (stream-based).  
+    En UDP, chaque message correspond à un datagramme que vous pouvez observer tel quel dans Wireshark.
 
-1. **Création d'un Endpoint** :
-    ```c
-    struct Endpoint* serveur = create_endpoint(UDP, "localhost", "127.0.0.1", 8080);
-    ```
-    - Cela crée un endpoint pour le protocole UDP.
-    - L'endpoint est lié à l'adresse IP `127.0.0.1` et au port `8080`, représentant le serveur avec lequel le client souhaite communiquer.
-
-2. **Communication avec le serveur**:
-    - Contrairement au client TCP, le client UDP n'a pas besoin d'établir une connexion préalable avec le serveur. Les messages sont envoyés directement à l'adresse et au port spécifiés dans l'endpoint du serveur. Cela simplifie la communication, mais nécessite que le client spécifie explicitement les informations du serveur à chaque envoi de message.
-
-    - Envoi d'un message au serveur
-    ```c
-    send_to(e, "Bonjour");
-    ```
-
-    - Réception et affichage des réponses
-    ```c
-    char* response = NULL;
-    do {
-        if (response != NULL) free(response);
-        response = receive_from(e);
-        printf("Server: %s (%zu)\n", response, strlen(response));
-    } while (strlen(response) > 0 && strcmp(response, "Au Revoir") != 0);
-    ```
+- **Pas de regroupement ni de découpage** :  
+    Contrairement à TCP, UDP ne regroupe pas plusieurs messages dans un seul segment ni ne fragmente un message en plusieurs segments.
 
 ---
+
+###### Que se passe t-il si vous débranchez le câble réseau?
+
+- **UDP ne détecte aucune connexion**, donc :
+    - Si vous envoyez des messages après avoir débranché le câble, ils sont simplement **perdus**.
+    - Le programme continue de fonctionner comme si de rien n'était ; il n'y a pas d'erreur immédiate lors de l'envoi.
+    - La fonction `recvfrom()` ne reçoit rien et soit **bloque**, soit retourne `-1` si le socket est en mode non-bloquant.
+
+- **Scénario de débranchement/rebranchement rapide** :
+    - Si le lien est rétabli rapidement, la communication peut reprendre sans problème.
+    - Étant donné qu'UDP ne maintient aucun état, il ne nécessite aucune "reconnexion."
+
+---
+
+###### **Pouvez-vous avec votre implémentation actuelle servir plusieurs clients ?**
+
+En UDP, aucune connexion persistante n’est établie.
+Le serveur reçoit simplement des datagrammes venant d’adresses différentes.
+Donc oui, le serveur peut naturellement servir plusieurs clients.
+
+**Avantages :**
+- Pas de file d’attente de connexions comme en TCP (listen() n’existe pas en UDP).
+- Le serveur peut traiter plusieurs clients séquentiellement ou en parallèle, simplement en identifiant l’adresse (IP:port) dans `recvfrom()`.
+
+**Limite :**
+- Il faut que le serveur traite assez vite les paquets, sinon le buffer d’entrée peut déborder.
+
+---
+
 #### 4. **Communication en mode concurrent** :
 
 ##### 1. **Concurrence Mono-Service**
@@ -591,47 +477,6 @@ Dans ce mode, le serveur est conçu pour gérer plusieurs connexions clients sim
 1. **Création d'un thread par client** :
     - Lorsqu'une connexion est acceptée, un nouveau thread est créé pour gérer la communication avec ce client. 
     - Il est détaché pour permettre son nettoyage automatique après l'exécution.
-
-    ```c
-    while (client = accept_connexion(e)) {
-        pthread_t thread;
-        if (pthread_create(&thread, NULL, get_time_service, client) != 0) {
-            perror("Failed to create thread");
-            free_endpoint(client);
-            continue;
-        }
-
-        pthread_detach(thread);
-    }
-    ```
-
-2. **Fonction de gestion des clients** :
-    - La fonction `get_time_service` est appelée dans chaque thread pour traiter les requêtes du client.
-    ```c
-    void* get_time_service(void* arg) {
-        struct Endpoint* client = (struct Endpoint*)arg;
-
-        char* request = receive_from(client);
-        printf("Client said: %s\n", request);
-        free(request);
-
-        char* current_time;
-        for (int i = 0; i < N; i++) {
-            current_time = get_current_time();
-            send_to(client, current_time);
-            free(current_time);
-
-            sleep(1);
-        }
-        send_to(client, "Au Revoir");
-        free_endpoint(client);
-
-        logger(INFO, "Connection ended");
-
-        free(arg);
-        return NULL;
-    }
-    ```
 
 - **Limitations** :
     - La création d'un thread par client peut entraîner une surcharge mémoire si le nombre de clients est élevé. C'est pourquoi il est important de considérer une valeur de backlog cohérente pour limiter le nombre de connexions simultanées en attente et éviter une surcharge du serveur.
@@ -646,42 +491,9 @@ Dans ce mode, le serveur est capable de gérer plusieurs services différents si
 
 1. **Utilisation de `select` ou `poll`** :
     Le serveur utilise des mécanismes de multiplexage pour surveiller plusieurs sockets en même temps. Chaque socket peut être associé à un service spécifique.
-    ```c
-    fd_set read_fds;
-    FD_ZERO(&read_fds);
-    FD_SET(server_sock1, &read_fds); // Service 1
-    FD_SET(server_sock2, &read_fds); // Service 2
-
-    int max_fd = max(server_sock1, server_sock2);
-    select(max_fd + 1, &read_fds, NULL, NULL, NULL);
-
-    if (FD_ISSET(server_sock1, &read_fds)) {
-        handle_service1();
-    }
-    if (FD_ISSET(server_sock2, &read_fds)) {
-        handle_service2();
-    }
-    ```
 
 2. **Gestion des services** :
     Chaque service est traité dans une fonction distincte.
-    ```c
-    void handle_service1() {
-        struct Endpoint* client = accept_connexion(service1_endpoint);
-        char* request = receive_from(client);
-        printf("Service 1 Client said: %s\n", request);
-        send_to(client, "Response from Service 1");
-        free_endpoint(client);
-    }
-
-    void handle_service2() {
-        struct Endpoint* client = accept_connexion(service2_endpoint);
-        char* request = receive_from(client);
-        printf("Service 2 Client said: %s\n", request);
-        send_to(client, "Response from Service 2");
-        free_endpoint(client);
-    }
-    ```
 
 ---
 
