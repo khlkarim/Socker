@@ -349,7 +349,7 @@ Fermeture en **four-way handshake** :
 
 #### 2. **Communication en mode connecté (TCP)**
 
-- Les implémentations des client et serveur TCP se trouvent dans le dossier `./test/mode_connecte_tcp`.
+- Les implémentations des clients et serveurs TCP se trouvent dans le dossier `./test/mode_connecte_tcp`.
 
 ---
 
@@ -470,16 +470,15 @@ Donc oui, le serveur peut naturellement servir plusieurs clients.
 
 ##### 1. **Concurrence Mono-Service**
 
-Dans ce mode, le serveur est conçu pour gérer plusieurs connexions clients simultanément, mais tous les clients utilisent le même service (service temps). Cela est réalisé en utilisant des threads pour chaque connexion client.
+- La implémentation du serveur TCP concurrent se trouvent dans le dossier `./test/mode_concurrent/mono_service`.
 
-###### **Implémentation avec Threads**
+- Dans ce mode, le serveur est conçu pour gérer plusieurs connexions clients simultanément, mais tous les clients utilisent le même service (service temps). 
 
-1. **Création d'un thread par client** :
-    - Lorsqu'une connexion est acceptée, un nouveau thread est créé pour gérer la communication avec ce client. 
-    - Il est détaché pour permettre son nettoyage automatique après l'exécution.
+- Cela est réalisé en utilisant un appel système `fork` pour créer un nouveau processus à chaque connexion client. Chaque processus enfant gère la communication avec un client spécifique, tandis que le processus parent continue d'accepter de nouvelles connexions. 
 
-- **Limitations** :
-    - La création d'un thread par client peut entraîner une surcharge mémoire si le nombre de clients est élevé. C'est pourquoi il est important de considérer une valeur de backlog cohérente pour limiter le nombre de connexions simultanées en attente et éviter une surcharge du serveur.
+###### Que constatez-vous par rapport à l’écoulement du temps si le nombre de clients est important ? 
+
+- Cette approche peut entraîner une surcharge en termes de ressources système si le nombre de connexions simultanées est élevé.
 
 ---
 

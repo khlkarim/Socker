@@ -19,7 +19,7 @@ void listen_to(struct Endpoint* e){
 		throw_error(e, "Listen failed");
 	}
 
-	logger(INFO, "Server listening ...");
+	printf("[INFO] Server listening on port %d\n", e->port);
 }
 
 // Used in TCP communication

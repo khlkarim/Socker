@@ -2,6 +2,7 @@
 #include <time.h>
 #include <math.h>
 #include <pthread.h>
+#include <sys/select.h>
 
 #define N 60
 #define NB_SERVICES 3
@@ -13,7 +14,6 @@ void* echo_service(void*);
 void* time_service(void*);
 void* random_number_service(void*);
 
-void* handle_service(void*);
 struct Args{
     struct Endpoint* endpoint;
     void* (*service)(void*);
@@ -21,43 +21,54 @@ struct Args{
 
 int main(int argc, char** argv){
     struct Endpoint* endpoints[NB_SERVICES];
+    fd_set read_fds, active_fds;
+    int max_fd = 0;
 
     for (int i = 0; i < NB_SERVICES; i++) {
         endpoints[i] = create_endpoint(TCP, NULL, "127.0.0.1", 8000+i);
         listen_to(endpoints[i]);
+        if (endpoints[i]->sockfd > max_fd) {
+            max_fd = endpoints[i]->sockfd;
+        }
     }
 
     void* (*services[])(void*) = {echo_service, time_service, random_number_service};
 
-    pthread_t threads[NB_SERVICES];
-
+    FD_ZERO(&active_fds);
     for (int i = 0; i < NB_SERVICES; i++) {
-        struct Args *args = malloc(sizeof(*args));
+        FD_SET(endpoints[i]->sockfd, &active_fds);
+    }
 
-        args->endpoint = endpoints[i];
-        args->service = services[i];
+    while (1) {
+        read_fds = active_fds;
 
-        pthread_create(&threads[i], NULL, handle_service, args);
+        if (select(max_fd + 1, &read_fds, NULL, NULL, NULL) < 0) {
+            perror("select");
+            break;
+        }
+
+        for (int i = 0; i < NB_SERVICES; i++) {
+            if (FD_ISSET(endpoints[i]->sockfd, &read_fds)) {
+                struct Endpoint* client = accept_connexion(endpoints[i]);
+                if (client != NULL) {
+                    pthread_t thread;
+                    struct Args *args = malloc(sizeof(struct Args*));
+
+                    args->endpoint = client;
+                    args->service = services[i];
+
+                    pthread_create(&thread, NULL, args->service, args->endpoint);
+                    pthread_detach(thread);
+                }
+            }
+        }
     }
 
     for (int i = 0; i < NB_SERVICES; i++) {
-        pthread_join(threads[i], NULL);
+        free_endpoint(endpoints[i]);
     }
 
     return 0;
-}
-
-void* handle_service(void* args){
-    struct Endpoint* e = ((struct Args*) args)->endpoint;
-    void* (*s)(void*) = ((struct Args*) args)->service;
-
-    struct Endpoint* client = NULL;
-
-    while((client = accept_connexion(e)) != NULL){
-        (*s)(client);
-    }
-
-    return NULL;
 }
 
 void* time_service(void* arg){
