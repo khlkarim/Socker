@@ -5,8 +5,6 @@ int main(int argc, char** argv){
 
     connect_to(e);
 
-    send_to(e, "Time");
-
     char* responce = NULL;
     do{
         if(responce != NULL) free(responce);

@@ -5,8 +5,6 @@ int main(int argc, char** argv){
 
     connect_to(e);
 
-    send_to(e, "Random");
-    
     char* request = receive_from(e);
     printf("Server: %s\n", request);
     free(request);

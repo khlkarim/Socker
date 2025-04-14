@@ -5,8 +5,6 @@ int main(int argc, char** argv){
 
     connect_to(e);
 
-    send_to(e, "Echo");
-
     char* request = NULL;
     do{
         if(request != NULL) free(request);

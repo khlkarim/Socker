@@ -25,8 +25,10 @@ int main(int argc, char** argv){
     int max_fd = 0;
 
     for (int i = 0; i < NB_SERVICES; i++) {
+
         endpoints[i] = create_endpoint(TCP, NULL, "127.0.0.1", 8000+i);
         listen_to(endpoints[i]);
+        
         if (endpoints[i]->sockfd > max_fd) {
             max_fd = endpoints[i]->sockfd;
         }
@@ -43,7 +45,7 @@ int main(int argc, char** argv){
         read_fds = active_fds;
 
         if (select(max_fd + 1, &read_fds, NULL, NULL, NULL) < 0) {
-            perror("select");
+            logger(ERROR, "Select failed");
             break;
         }
 
